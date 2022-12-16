@@ -5,7 +5,6 @@ import (
 	"flag"
 
 	"github.com/ovn-org/libovsdb/client"
-	"github.com/ovn-org/libovsdb/model"
 	"github.com/qinqon/ovn-dia/pkg/nbdb"
 )
 
@@ -23,7 +22,7 @@ func main() {
 		Context: context.Background(),
 	}
 
-	nbcli, err := newNBClient(context.Background(), *nbEndpoint)
+	nbcli, err := nbdb.NewClient(context.Background(), *nbEndpoint)
 	if err != nil {
 		panic(err)
 	}
@@ -54,25 +53,6 @@ func main() {
 			log.Fatal(err)
 		}
 	*/
-}
-
-func newNBClient(ctx context.Context, endpoint string) (client.Client, error) {
-	ovsNbModel, err := nbdb.FullDatabaseModel()
-	if err != nil {
-		return nil, err
-	}
-
-	return newOVSClient(ctx, ovsNbModel, endpoint)
-}
-
-func newOVSClient(ctx context.Context, ovsModel model.ClientDBModel, endpoint string) (client.Client, error) {
-	cli, err := client.NewOVSDBClient(ovsModel, client.WithEndpoint(endpoint))
-
-	err = cli.Connect(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return cli, nil
 }
 
 func logicalSwitches(ctx *Context) ([]nbdb.LogicalSwitch, error) {

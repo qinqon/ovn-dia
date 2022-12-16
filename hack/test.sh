@@ -12,6 +12,8 @@ docker logs $nbdb_name
 
 sleep 2
 
+docker exec $nbdb_name /populate.sh
+
 sudo ../.out/ovn-dia -nb unix:/tmp/ovn/ovnnb_db.sock
 
 
