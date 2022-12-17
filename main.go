@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 
 	"github.com/ovn-org/libovsdb/client"
 	"github.com/qinqon/ovn-dia/pkg/nbdb"
@@ -18,7 +19,7 @@ func main() {
 
 	flag.Parse()
 
-	ctx := Context{
+	ctx := &Context{
 		Context: context.Background(),
 	}
 
@@ -28,6 +29,12 @@ func main() {
 	}
 
 	ctx.nbcli = nbcli
+
+	lss, err := logicalSwitches(ctx)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(lss)
 
 	/*
 		d, err := diagram.New(
@@ -55,6 +62,10 @@ func main() {
 	*/
 }
 
-func logicalSwitches(ctx *Context) ([]nbdb.LogicalSwitch, error) {
-	return nil, nil
+func logicalSwitches(ctx *Context) ([]*nbdb.LogicalSwitch, error) {
+	var lss []*nbdb.LogicalSwitch
+	if err := ctx.nbcli.List(ctx, &lss); err != nil {
+		return nil, err
+	}
+	return lss, nil
 }

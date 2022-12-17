@@ -14,5 +14,8 @@ func NewClient(ctx context.Context, ovsModel model.ClientDBModel, endpoint strin
 	if err != nil {
 		return nil, err
 	}
+	if _, err := cli.MonitorAll(context.Background()); err != nil {
+		return nil, err
+	}
 	return cli, nil
 }
