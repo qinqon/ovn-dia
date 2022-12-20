@@ -14,7 +14,10 @@ sleep 2
 
 docker exec $nbdb_name /populate.sh
 
+sudo rm -rf go-diagrams
+
 sudo ../.out/ovn-dia -nb unix:/tmp/ovn/ovnnb_db.sock
 
-
+pushd go-diagrams
+dot -Tpng ovn-nbdb.dot > ../../.out/ovn-nbdb.png
 

@@ -3,69 +3,30 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
+	"log"
 
-	"github.com/ovn-org/libovsdb/client"
+	"github.com/qinqon/ovn-dia/pkg/dot"
 	"github.com/qinqon/ovn-dia/pkg/nbdb"
+	"github.com/qinqon/ovn-dia/pkg/topology"
 )
-
-type Context struct {
-	context.Context
-	nbcli client.Client
-}
 
 func main() {
 	nbEndpoint := flag.String("nb", "/var/run/ovn/nb.db", "NB endpoint")
 
 	flag.Parse()
 
-	ctx := &Context{
-		Context: context.Background(),
-	}
+	ctx := context.Background()
 
-	nbcli, err := nbdb.NewClient(context.Background(), *nbEndpoint)
+	nbcli, err := nbdb.NewClient(ctx, *nbEndpoint)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
-
-	ctx.nbcli = nbcli
-
-	lss, err := logicalSwitches(ctx)
+	nb, err := topology.LoadNorthBound(ctx, nbcli)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
-	fmt.Println(lss)
 
-	/*
-		d, err := diagram.New(
-			diagram.Label("Kubernetes"),
-			diagram.Filename("k8s"),
-			diagram.Direction("TB"),
-		)
-
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		ingress := k8s.Network.Ing(diagram.NodeLabel("nginx"))
-		svc := k8s.Network.Svc(diagram.NodeLabel("http"))
-
-		d.Connect(ingress, svc)
-
-		g := diagram.NewGroup("pods").Label("Deployment").Connect(svc, k8s.Compute.Pod(diagram.NodeLabel("web server")))
-
-		d.Group(g)
-
-		if err := d.Render(); err != nil {
-			log.Fatal(err)
-		}
-	*/
-}
-
-func logicalSwitches(ctx *Context) ([]*nbdb.LogicalSwitch, error) {
-	var lss []*nbdb.LogicalSwitch
-	if err := ctx.nbcli.List(ctx, &lss); err != nil {
-		return nil, err
+	if err := dot.RenderNorthBound(nb); err != nil {
+		log.Fatal(err)
 	}
-	return lss, nil
 }
