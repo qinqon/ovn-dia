@@ -2,9 +2,10 @@ package topology
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"github.com/blushft/go-diagrams/diagram"
-	"github.com/blushft/go-diagrams/nodes/generic"
 	"github.com/ovn-org/libovsdb/client"
 	"github.com/qinqon/ovn-dia/pkg/nbdb"
 )
@@ -89,9 +90,22 @@ func (nb *NorthBound) loadSwitches(ctx context.Context, cli client.Client) error
 		return err
 	}
 	for _, ls := range lss {
+		label := fmt.Sprintf("Logical Switch\n[%s]", ls.Name)
+		if ls.OtherConfig != nil {
+			subnet, ok := ls.OtherConfig["subnet"]
+			if ok {
+				label = fmt.Sprintf("%s\n(%s)", label, subnet)
+			}
+		}
 		nb.Switches[ls.UUID] = &Switch{
-			NB:  ls,
-			Dia: generic.Network.Switch(diagram.NodeLabel(ls.Name)),
+			NB: ls,
+			Dia: diagram.NewNode(
+				diagram.NodeLabel(label),
+				diagram.LabelLocation("center"),
+				diagram.FixedSize(false),
+				diagram.NodeShape("rectangle"),
+				nodeFillColor("aquamarine"),
+			),
 		}
 	}
 	return nil
@@ -103,9 +117,16 @@ func (nb *NorthBound) loadRouters(ctx context.Context, cli client.Client) error 
 		return err
 	}
 	for _, lr := range lrs {
+		label := fmt.Sprintf("Logical Router\n[%s]", lr.Name)
 		router := &Router{
-			NB:  lr,
-			Dia: generic.Network.Router(diagram.NodeLabel(lr.Name)),
+			NB: lr,
+			Dia: diagram.NewNode(
+				diagram.NodeLabel(label),
+				diagram.LabelLocation("center"),
+				diagram.FixedSize(false),
+				diagram.NodeShape("oval"),
+				nodeFillColor("cadetblue1"),
+			),
 		}
 		nb.Routers[lr.UUID] = router
 		nb.RouterByName[lr.Name] = router
@@ -119,8 +140,26 @@ func (nb *NorthBound) loadSwitchPorts(ctx context.Context, cli client.Client) er
 		return err
 	}
 	for _, lsp := range lsps {
+		label := lsp.Name
+		if len(lsp.Addresses) > 0 {
+			for _, a := range lsp.Addresses {
+				addresses := strings.Split(a, " ")
+				if len(addresses) == 2 {
+					label = fmt.Sprintf("%s\n(%s)", label, addresses[1])
+				}
+			}
+		}
+		if lsp.DynamicAddresses != nil {
+			label = fmt.Sprintf("%s\n%s", label, *lsp.DynamicAddresses)
+		}
 		nb.SwitchPorts[lsp.UUID] = &SwitchPort{
 			NB: lsp,
+			Dia: diagram.NewNode(
+				diagram.FixedSize(false),
+				diagram.NodeLabel(label),
+				diagram.LabelLocation("center"),
+				diagram.NodeShape("component"),
+			),
 		}
 	}
 	return nil
@@ -134,6 +173,11 @@ func (nb *NorthBound) loadRouterPorts(ctx context.Context, cli client.Client) er
 	for _, lrp := range lrps {
 		port := &RouterPort{
 			NB: lrp,
+			Dia: diagram.NewNode(
+				diagram.FixedSize(false),
+				diagram.NodeLabel(lrp.Name),
+				diagram.NodeShape("component"),
+			),
 		}
 		nb.RouterPorts[lrp.UUID] = port
 		nb.RouterPortByName[lrp.Name] = port
@@ -187,5 +231,12 @@ func (nb *NorthBound) resolveReferences() {
 			continue
 		}
 		rtp.Peer = router
+	}
+}
+
+func nodeFillColor(c string) diagram.NodeOption {
+	return func(o *diagram.NodeOptions) {
+		o.Attributes["style"] = "filled"
+		o.Attributes["fillcolor"] = c
 	}
 }
